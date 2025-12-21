@@ -1,0 +1,114 @@
+----------------------------------------------------------------
+VCS Simulation Log
+----------------------------------------------------------------
+
+Command:
+vcs -full64 -sverilog -debug_access+all \
+    -timescale=1ns/1ps \
+    -l simv.log \
+    tb_top.sv i2c_uvm_pkg.sv i2c_test.sv
+
+VCS Simulator Version: VCS 2023.09
+Platform: linux64
+Date: Mon Dec 11 14:32:18 2025
+
+----------------------------------------------------------------
+Waveform Dump Configuration
+----------------------------------------------------------------
+VCD dump enabled
+Dump file: ./sim.vcd
+
+----------------------------------------------------------------
+Simulation Start
+----------------------------------------------------------------
+Time resolution is 1 ns
+
+UVM_INFO ./simulation/top.sv(17) @ 0: reporter [UVM/RELNOTES] UVM-1.2
+UVM_INFO ./simulation/top.sv(17) @ 0: reporter [UVM/PHASE] build phase started
+UVM_INFO ./simulation/top.sv(17) @ 0: reporter [UVM/PHASE] build phase completed
+UVM_INFO ./simulation/top.sv(17) @ 0: reporter [UVM/PHASE] run phase started
+
+----------------------------------------------------------------
+I2C Transactions
+----------------------------------------------------------------
+
+UVM_INFO ./simulation/top.sv(17) @ 100ns: i2c_env.agent.driver [I2C_DRV] Starting I2C READ transaction
+UVM_INFO ./simulation/top.sv(17) @ 100ns: i2c_env.agent.monitor [I2C_MON]
+  Transaction ID   : 1
+  Type             : READ
+  Slave Address    : 0x50
+  Register Address : 0x10
+  Data             : 0xA5
+  ACK Received     : YES
+UVM_INFO ./simulation/top.sv(17) @ 120ns: i2c_env.scoreboard [I2C_SCB] Transaction 1 PASSED
+
+----------------------------------------------------------------
+
+UVM_INFO ./simulation/top.sv(17) @ 200ns: i2c_env.agent.driver [I2C_DRV] Starting I2C WRITE transaction
+UVM_INFO ./simulation/top.sv(17) @ 200ns: i2c_env.agent.monitor [I2C_MON]
+  Transaction ID   : 2
+  Type             : WRITE
+  Slave Address    : 0x50
+  Register Address : 0x11
+  Data             : 0x3C
+  ACK Received     : YES
+UVM_INFO ./simulation/top.sv(17) @ 225ns: i2c_env.scoreboard [I2C_SCB] Transaction 2 PASSED
+
+----------------------------------------------------------------
+UVM_INFO ./simulation/top.sv(17) @ 300ns: i2c_env.agent.driver [I2C_DRV] Starting I2C READ transaction
+UVM_INFO @ 300ns: i2c_env.agent.monitor [I2C_MON]
+  Transaction ID   : 3
+  Type             : READ
+  Slave Address    : 0x50
+  Register Address : 0x12
+  Data             : 0x7E
+  ACK Received     : YES
+UVM_INFO ./simulation/top.sv(18) UVM_INFO @ 320ns: i2c_env.scoreboard [I2C_SCB] Transaction 3 PASSED
+
+----------------------------------------------------------------
+UVM_INFO ./simulation/top.sv(17) @ 400ns: i2c_env.agent.driver [I2C_DRV] Starting I2C READ transaction
+UVM_ERROR @ 410ns: i2c_env.agent.monitor [I2C_MON]
+  Transaction ID   : 4
+  Type             : READ
+  Slave Address    : 0x50
+  Phase            : ADDRESS
+  ACK Received     : NO
+  Error            : Missing ACK during address phase
+
+UVM_ERROR ./simulation/top.sv(17) @ 410ns: i2c_env.scoreboard [I2C_SCB]
+  Transaction 4 FAILED
+  Reason: I2C address phase did not receive acknowledge bit
+
+----------------------------------------------------------------
+
+UVM_INFO ./simulation/top.sv(17) @ 500ns: i2c_env.agent.driver [I2C_DRV] Starting I2C WRITE transaction
+UVM_INFO ./simulation/top.sv(17) @ 500ns: i2c_env.agent.monitor [I2C_MON]
+  Transaction ID   : 5
+  Type             : WRITE
+  Slave Address    : 0x50
+  Register Address : 0x13
+  Data             : 0x9B
+  ACK Received     : YES
+UVM_INFO ./simulation/top.sv(17) @ 525ns: i2c_env.scoreboard [I2C_SCB] Transaction 5 PASSED
+
+----------------------------------------------------------------
+Simulation Summary
+----------------------------------------------------------------
+
+UVM_INFO ./simulation/top.sv(17) @ 600ns: reporter [UVM/REPORT/SUMMARY]
+  Total Transactions : 5
+  Passed             : 4
+  Failed             : 1
+  Errors             : 1
+  Warnings           : 0
+
+UVM_INFO ./simulation/top.sv(17) @ 600ns: reporter [UVM/PHASE] run phase completed
+UVM_INFO ./simulation/top.sv(17) @ 600ns: reporter [UVM/PHASE] extract phase completed
+UVM_INFO ./simulation/top.sv(17) @ 600ns: reporter [UVM/PHASE] report phase completed
+
+----------------------------------------------------------------
+Simulation End
+----------------------------------------------------------------
+
+$finish called at time 600ns
+VCS Simulation completed with errors
