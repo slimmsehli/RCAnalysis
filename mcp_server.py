@@ -35,7 +35,7 @@ mcp = FastMCP("RTL_Toolbox")
 ###### 1.log parse a log file and extract errors
 ##########################################
 @mcp.tool()
-def parse_log_for_errors(log_path: str) -> str:
+def parse_log_for_errors(log_path: str, error_regx : str = r"ERROR:\s+([\d\w\.\/]+)\s+at\s+line\s+(\d+)") -> str:
     """Finds the VCD file and any Verilog errors in the log."""
     try:
         with open(log_path, "r") as f:
@@ -52,7 +52,7 @@ def parse_log_for_errors(log_path: str) -> str:
 
             # 2. Look for the Error pattern
             # Matches: ERROR: path/to/file.sv at line 123
-            error_match = re.search(r"ERROR:\s+([\d\w\.\/]+)\s+at\s+line\s+(\d+)", line)
+            error_match = re.search(error_regx, line)
             if error_match:
                 found_errors.append({
                     "file": error_match.group(1),
@@ -92,7 +92,7 @@ def find_first_uvm_error(log_path: str) -> List[Tuple[Any, Any]]:
 ##########################################
 ###### 3.log extract the previous 20 lines
 ##########################################
-# @TODO to change this to extrat N lines before the error line
+# @TODO to add 
 @mcp.tool()
 def get_error_context(log_path: str, error_line: int, window: int = 20) -> str:
     """Extracts the 'N' lines preceding an error for LLM analysis."""
@@ -222,7 +222,7 @@ def _bit(value: str, size_hint: Optional[int], bit_index: Optional[int]) -> Opti
     return None
 
 ######################################################################
-###### 2.vcd get simulation time
+###### vcd get simulation time
 ######################################################################
 def vcd_get_simulation_time(path: str, store_scopes: bool = False) -> float:
     """
@@ -273,7 +273,7 @@ def vcd_get_simulation_time(path: str, store_scopes: bool = False) -> float:
     return float(sim_time_seconds)
 
 ##########################################
-###### 3.vcd Get the timescale from a vcd file
+###### vcd Get the timescale from a vcd file
 ##########################################
 
 @mcp.tool()
@@ -297,7 +297,25 @@ def vcd_get_timescale_str(path: str, store_scopes: bool = False) -> str:
         return "File does not exist"
 
 ######################################################################
-###### 4.vcd get signal value at a specific timestamp
+###### vcd show the hierarchy of the design
+######################################################################
+@mcp.tool()
+def list_vcd_signals(path: str, pattern: str = "", store_scopes: bool = False) -> str:
+    """Returns a list of all signals in the VCD matching a pattern (e.g., 'dut')."""
+    try:
+        if os.path.exists(path):
+            vcdobj = VCDVCD(path, store_tvs=True, store_scopes=store_scopes)
+        else :
+            return "error : vcd File does not exist"
+        # Assuming vcdvcd, we can list the keys (signals)
+        signals = [s for s in vcdobj.signals if pattern in s]
+        return "\n".join(signals[:20]) # Limit to 20 so we don't blow the token limit
+    except Exception as e:
+        return f"Error: {e}"
+
+
+######################################################################
+###### vcd get signal value at a specific timestamp
 ######################################################################
 
 def vcd_get_signal_value_at_timestamp(path: str, signal_name: str, timestamp: Union[str, float, int], method: str = "previous") -> Any:
@@ -324,7 +342,7 @@ def vcd_get_signal_value_at_timestamp(path: str, signal_name: str, timestamp: Un
     return tv[idx][1]
 
 ######################################################################
-###### 5.vcd get signal value at a specific time frame
+###### vcd get signal value at a specific time frame
 ######################################################################
 
 def vcd_get_signal_values_in_timeframe(path: str, signal_name: str, start: Optional[Union[str, float, int]], end: Optional[Union[str, float, int]], include_start_prev: bool = True) -> List[Tuple[float, Any]]:
@@ -349,9 +367,10 @@ def vcd_get_signal_values_in_timeframe(path: str, signal_name: str, start: Optio
     return out
 
 ######################################################################
-###### 6.vcd Count a signal transitions in a time frame
+###### vcd Count a signal transitions in a time frame
 ######################################################################
 # count_signal_all_transitions (vcd: VCDVCD, signal_name: str, edge: str, start:etr, end:str, bit_index:int)
+# @TODO this only supportes signals and not bus, need to update the function to support bus with changes on the bus instead of edges
 def vcd_count_signal_all_transitions(path: str, signal_name: str, edge: str, start: Optional[Union[str, float, int]], end: Optional[Union[str, float, int]], bit_index: Optional[int] = None) -> int:
     """
     Return the count of the number of a signal edges in a time window
@@ -381,7 +400,7 @@ def vcd_count_signal_all_transitions(path: str, signal_name: str, edge: str, sta
     return cnt
 
 ######################################################################
-###### 7.vcd Get the first edge after a timestamp
+###### vcd Get the first edge after a timestamp
 ######################################################################
 ### @TODO need add the first value and the value after the transition in the output results
 def vcd_next_change_after(path: str, signal_name: str, timestamp: Union[str, float, int]) -> Optional[Tuple[float, Any]]:
@@ -404,7 +423,7 @@ def vcd_next_change_after(path: str, signal_name: str, timestamp: Union[str, flo
     return None
 
 ######################################################################
-###### 8.vcd Get the first edge after a timestamp
+###### vcd Get the first edge after a timestamp
 ######################################################################
 ### @TODO need add the first value and the value after the transition in the output results
 def vcd_prev_change_before(path: str, signal_name: str, timestamp: Union[str, float, int]) -> Optional[Tuple[float, Any]]:
@@ -427,7 +446,7 @@ def vcd_prev_change_before(path: str, signal_name: str, timestamp: Union[str, fl
     return None
 
 ######################################################################
-###### 9.vcd Search for a vlaue of a singal
+###### vcd Search for a vlaue of a singal
 ######################################################################
 ### @TODO  need to add the entire timeframe where the signal has the extracted value not only the transition
 def vcd_search_value(path: str, signal_name: str, value: Any, start: Optional[Union[str, float, int]] = None, end: Optional[Union[str, float, int]] = None) -> List[float]:
@@ -444,32 +463,10 @@ def vcd_search_value(path: str, signal_name: str, value: Any, start: Optional[Un
     return [t for (t, v) in changes if (v.lower() if isinstance(v, str) else v) == target]
 
 ######################################################################
-###### 10.vcd show the hierarchy of the design
-######################################################################
-@mcp.tool()
-def list_vcd_signals(path: str, pattern: str = "", store_scopes: bool = False) -> str:
-    """Returns a list of all signals in the VCD matching a pattern (e.g., 'dut')."""
-    try:
-        if os.path.exists(path):
-            vcdobj = VCDVCD(path, store_tvs=True, store_scopes=store_scopes)
-        else :
-            return "error : vcd File does not exist"
-        # Assuming vcdvcd, we can list the keys (signals)
-        signals = [s for s in vcdobj.signals if pattern in s]
-        return "\n".join(signals[:20]) # Limit to 20 so we don't blow the token limit
-    except Exception as e:
-        return f"Error: {e}"
-
-######################################################################
-###### 11.vcd get a list of signals values at a specific timestamp
+###### vcd get a list of signals values at a specific timestamp
 ######################################################################
 
-def vcd_get_signals_values_at_timestamp(
-    path: str,
-    signal_names: Iterable[str],
-    timestamp: Union[str, float, int],
-    method: str = "previous",
-) -> Dict[str, Any]:
+def vcd_get_signals_values_at_timestamp(path: str, signal_names: Iterable[str], timestamp: Union[str, float, int], method: str = "previous") -> Dict[str, Any]:
     """
     Return a dict {signal_name: value_at_timestamp} for multiple signals.
     - method='previous': last value at or before timestamp (step/hold semantics)
@@ -506,15 +503,10 @@ def vcd_get_signals_values_at_timestamp(
     return out
 
 ######################################################################
-###### 12.vcd get a list of signals values at a specific time frame
+###### vcd get a list of signals values at a specific time frame
 ######################################################################
 
-def vcd_get_signals_aligned_in_window(
-    path: str,
-    signal_names: Iterable[str],
-    start: Union[str, float, int],
-    end: Union[str, float, int],
-) -> Tuple[List[float], Dict[str, List[Any]]]:
+def vcd_get_signals_aligned_in_window(path: str, signal_names: Iterable[str], start: Union[str, float, int], end: Union[str, float, int]) -> Tuple[List[float], Dict[str, List[Any]]]:
     """
     Returns (times, values_by_signal):
     - times: sorted list including 'start' and all change times of the requested signals
